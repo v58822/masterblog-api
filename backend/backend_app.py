@@ -12,7 +12,22 @@ POSTS = [
 
 @app.route("/api/posts", methods=["GET"])
 def get_posts():
-    return jsonify(POSTS)
+
+    sort_field = request.args.get("sort")
+    direction = request.args.get("direction", "asc")
+
+    posts = POSTS
+    if sort_field:
+        if sort_field not in ["title", "content"]:
+            return jsonify({"error": "You can only sort by: 'title' or 'content'"}), 400
+        if direction not in ["asc", "desc"]:
+            return jsonify({"error": "Invalid sort direction"}), 400
+        posts = sorted(
+            POSTS,
+            key=lambda post: post[sort_field].lower(),
+            reverse=direction == "desc",
+        )
+    return jsonify(posts)
 
 
 @app.route("/api/posts", methods=["POST"])
@@ -83,6 +98,24 @@ def update_post(id):
             return jsonify(post), 200
 
     return jsonify({"message": f"Post with id {id} was not found."}), 404
+
+
+@app.route("/api/posts/search", methods=["GET"])
+def search_posts():
+
+    title = request.args.get("title")
+    content = request.args.get("content")
+
+    results = []
+
+    for post in POSTS:
+        if title and title.lower() in post["title"].lower():
+            if post not in results:
+                results.append(post)
+        if content and content.lower() in post["content"].lower():
+            if post not in results:
+                results.append(post)
+    return jsonify(results), 200
 
 
 if __name__ == "__main__":
